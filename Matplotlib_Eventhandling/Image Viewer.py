@@ -88,7 +88,6 @@ class MainWindow(QMainWindow):
         self.dragging = False
         self.rect = None
         self.start_point = (0, 0)
-        self.click_count = 0  
         
         # Connect mouse events
         self.canvas.mpl_connect('button_press_event', self.on_click)
@@ -121,7 +120,9 @@ class MainWindow(QMainWindow):
         else:
             self.dragging = True
             self.start_point = (event.xdata, event.ydata)
-            self.rect = self.ax.add_patch(
+            if self.rect:
+                self.rect.remove()
+            self.rect = self.canvas.ax.add_patch(
                 plt.Rectangle(
                     self.start_point, 
                     0, 0, 
@@ -132,10 +133,10 @@ class MainWindow(QMainWindow):
             
     def on_right_click(self, event):
         # Handle right-click event
-        self.ax.add_patch(
+        self.canvas.ax.add_patch(
             plt.Circle(
                 (event.xdata, event.ydata), 
-                10, 
+                2, 
                 color='blue', fill=True
             )
         )
@@ -147,10 +148,11 @@ class MainWindow(QMainWindow):
             return
         x0, y0 = self.start_point
         x1, y1 = event.xdata, event.ydata
-        self.rect.set_width(x1 - x0)
-        self.rect.set_height(y1 - y0)
-        self.rect.set_xy((min(x0, x1), min(y0, y1)))
-        self.canvas.draw()
+        if self.rect:
+            self.rect.set_width(x1 - x0)
+            self.rect.set_height(y1 - y0)
+            self.rect.set_xy((min(x0, x1), min(y0, y1)))
+            self.canvas.draw()
         
     def on_release(self, event):
         # Handle mouse button release event
@@ -162,11 +164,13 @@ class MainWindow(QMainWindow):
                                             "Confirm", 
                                             "Keep the rectangle?", 
                                             QMessageBox.Yes | QMessageBox.No)
-            if response == QMessageBox.No:
+            if response == QMessageBox.No and self.rect:
                 self.rect.remove()  # Remove rectangle if 'No' is selected
+                self.rect = None
             self.canvas.draw()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = MainWindow()
     sys.exit(app.exec())
+
